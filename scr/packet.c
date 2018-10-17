@@ -15,8 +15,7 @@ struct __attribute__((__packed__)) pkt {
 	uint32_t crc2;
 };
 
-/* Extra code */
-/* Your code will be inserted here */
+/* Extra code here */
 
 pkt_t* pkt_new()
 {
@@ -36,80 +35,112 @@ void pkt_del(pkt_t *pkt)
 
 pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 {
-	/* Your code will be inserted here */
+	pkt_del(pkt);
+	/* inserted decoding */
+	return 0;
 }
 
 pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 {
-	/* Your code will be inserted here */
+	if (buf != NULL) {
+		free(buf);
+	}
+	if (pkt == NULL) {
+		return E_UNCONSISTENT;
+	}
+	if ((pkt->type < 1) || (pkt->type > 3)) {
+		return E_TYPE;
+	}
+	if ((pkt->tr != 1) || (pkt->tr != 0)) {
+		return E_TR;
+	}
+	if ((pkt->type == PTYPE_DATA) && (pkt->tr != 0)) {
+		return E_TR;
+	}
+	if ((pkt->window < 0) || (pkt->window > 31)) {
+		return E_WINDOW;
+	}
+	if ((pkt->seqnum < 0) || (pkt->seqnum > 255)) {
+		return E_SEQNUM;
+	}
+	if ((pkt->length < 0) || (pkt->length > 512)) {
+		return E_LENGTH;
+	}
+
+	int pkt_size = 4 + 4 + 4 + pkt->length + (pkt->length == 0) * 4;
+	buf = malloc(sizeof(char) * pkt_size);
+
+	if (buf == NULL) {
+		return E_NOMEM;
+	}
+	/* insert encoding */
+	return 0;
 }
 
 ptypes_t pkt_get_type(const pkt_t* pkt)
 {
 	if (pkt == NULL) {
-		
-	}
+		/**/}
 	return plt->type;
 }
 
 uint8_t  pkt_get_tr(const pkt_t* pkt)
 {
 	if (pkt == NULL) {
-
-	}
+		/**/}
 	return plt->tr;
 }
 
 uint8_t  pkt_get_window(const pkt_t* pkt)
 {
 	if (pkt == NULL) {
-
-	}
+		/**/}
 	return plt->window;
 }
 
 uint8_t  pkt_get_seqnum(const pkt_t* pkt)
 {
 	if (pkt == NULL) {
-
-	}
+		/**/}
 	return pl->seqnum;
 }
 
 uint16_t pkt_get_length(const pkt_t* pkt)
 {
 	if (pkt == NULL) {
-
-	}
+		/**/}
 	return plt->length;
 }
 
 uint32_t pkt_get_timestamp(const pkt_t* pkt)
 {
 	if (pkt == NULL) {
-
-	}
+		/**/}
 	return plt->timestamp;
 }
 
 uint32_t pkt_get_crc1(const pkt_t* pkt)
 {
 	if (pkt == NULL) {
-
-	}
+		/**/}
 	return plt->crc1;
 }
 
 uint32_t pkt_get_crc2(const pkt_t* pkt)
 {
 	if (pkt == NULL) {
-
-	}
+		/**/}
+	if (pkt->length == 0) {
+		return 0;}
 	return plt->crc2;
 }
 
 const char* pkt_get_payload(const pkt_t* pkt)
 {
+	if (pkt == NULL) {
+		return NULL;}
+	if (pkt->length == 0) {
+		return NULL;}
 	/* Your code will be inserted here */
 }
 
@@ -130,7 +161,7 @@ pkt_status_code pkt_set_tr(pkt_t *pkt, const uint8_t tr)
 		return E_UNCONSISTENT;}
 	if ((tr != 1) || (tr != 0)) {
 		return E_TR;}
-	if ((pkt->type== PTYPE_DATA) && (tr!=0)) {
+	if ((pkt->type == PTYPE_DATA) && (tr != 0)) {
 		return E_TR;}
 	pkt->tr = tr;
 	return 0;
@@ -140,7 +171,7 @@ pkt_status_code pkt_set_window(pkt_t *pkt, const uint8_t window)
 {
 	if (pkt == NULL) {
 		return E_UNCONSISTENT;}
-	if ((type < 0) || (type > 31)) {
+	if ((window < 0) || (window > 31)) {
 		return E_WINDOW;}
 	pkt->window = window;
 	return 0;
@@ -150,7 +181,7 @@ pkt_status_code pkt_set_seqnum(pkt_t *pkt, const uint8_t seqnum)
 {
 	if (pkt == NULL) {
 		return E_UNCONSISTENT;}
-	if ((type < 0) || (type > 255)) {
+	if ((seqnum < 0) || (seqnum > 255)) {
 		return E_SEQNUM;}
 	pkt->seqnum = seqnum;
 	return 0;
@@ -160,7 +191,7 @@ pkt_status_code pkt_set_length(pkt_t *pkt, const uint16_t length)
 {
 	if (pkt == NULL) {
 		return E_UNCONSISTENT;}
-	if ((type < 0) || (type > 512)) {
+	if ((length < 0) || (length > 512)) {
 		return E_LENGTH;}
 	pkt->length = length;
 	return 0;
@@ -193,5 +224,7 @@ pkt_status_code pkt_set_crc2(pkt_t *pkt, const uint32_t crc2)
 pkt_status_code pkt_set_payload(pkt_t *pkt,
 	const char *data,const uint16_t length)
 {
+	if (pkt == NULL) {
+		return E_UNCONSISTENT;}
 	/* Your code will be inserted here */
 }
