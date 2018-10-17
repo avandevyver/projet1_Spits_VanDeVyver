@@ -1,4 +1,6 @@
 #include "packet_interface.h" /*retire la interface*/
+#include <stdlib.h>
+#include <string.h>
 
 /* Extra #includes */
 /* Your code will be inserted here */
@@ -141,7 +143,7 @@ const char* pkt_get_payload(const pkt_t* pkt)
 		return NULL;}
 	if (pkt->length == 0) {
 		return NULL;}
-	/* Your code will be inserted here */
+	return pkt->playload;
 }
 
 
@@ -226,5 +228,19 @@ pkt_status_code pkt_set_payload(pkt_t *pkt,
 {
 	if (pkt == NULL) {
 		return E_UNCONSISTENT;}
-	/* Your code will be inserted here */
+
+	if (pkt_set_length(pkt , length) != 0) {
+		return E_LENGTH;
+	}
+	if ((data == NULL) || (length == 0)) {
+		pkt_del(pkt);
+		return 0;
+	}
+	char* load = malloc(n * sizeof(char*));
+	if (load == NULL) {
+		return E_NOMEM;}
+	load = strcpy(load, buf);
+	pkt_del(pkt);
+	pkt->playload = load;
+	return 0;
 }
