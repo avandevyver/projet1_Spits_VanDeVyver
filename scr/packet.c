@@ -58,23 +58,25 @@ void pkt_del(pkt_t *pkt)
 		if (pkt->playload != NULL) {
 			free(pkt->playload);
 		}
+		free(pkt);
 	}
 	exit(EXIT_SUCCESS);
 }
 
 pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 {
-	pkt_del(pkt);
-	pkt = pkt_new();
-	if (pkt == NULL) {
-		return E_NOMEM;
-	}
-	if (len < 8) {
+	if (len < 12 * sizeof(char)) {
 		return E_NOHEADER;
+	}
+	if (pkt == NULL) {
+		pkt = pkt_new();
+		if (pkt == NULL) {
+			return E_NOMEM;
+		}
 	}
 	memcpy(pkt, data, 12 * sizeof(char));/*copy header*/
 	pkt->length = ntohs(pkt->length);
-	if ((len != 12) || (len != 16 + pkt->length)) {
+	if ((len != 12 * sizeof(char)) || (len != (16 + pkt->length) * sizeof(char))) {
 		return E_UNCONSISTENT;
 	}
 	pkt->playload = malloc(pkt->length * sizeof(char));
@@ -96,10 +98,7 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 
 pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 {
-	if (buf != NULL) {
-		free(buf);
-	}
-	int dia = pkt_validity(pkt);
+	pkt_status_code dia = pkt_validity(pkt);
 	if (dia != 0) {
 		return dia;
 	}
@@ -108,8 +107,7 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 	if (pkt->length != 0) {
 		pkt_size += 4;
 	}
-	buf = malloc(pkt_size * sizeof(char));
-	if (buf == NULL) {
+	if (len < pkt_size * sizeof(char)) {
 		return E_NOMEM;
 	}
 
