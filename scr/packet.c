@@ -47,15 +47,17 @@ pkt_status_code pkt_validity(const pkt_t *pkt) {
 pkt_t* pkt_new()
 {
 	struct pkt_t* pkt = malloc(sizeof(struct pkt_t*));
-	pkt->type = 0;
-	pkt->tr = 0;
-	pkt->window = 0;
-	pkt->seqnum = 0;
-	pkt->length = 0;
-	pkt->timestamp = 0;
-	pkt->crc1 = 0;
-	pkt->playload = NULL;
-	pkt->crc2 = 0;
+	if (pkt != NULL) {
+		pkt->type = 0;
+		pkt->tr = 0;
+		pkt->window = 0;
+		pkt->seqnum = 0;
+		pkt->length = 0;
+		pkt->timestamp = 0;
+		pkt->crc1 = 0;
+		pkt->playload = NULL;
+		pkt->crc2 = 0;
+	}
 	return pkt;
 }
 
