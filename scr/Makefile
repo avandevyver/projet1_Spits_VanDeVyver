@@ -1,17 +1,22 @@
-AR=ar
-CFLAGS=-g -Wall -W -I/usr/include/SDL
-LDFLAGS=
-SRC=packet.c sender.c receiver.c
-OBJ=$(SRC:.c=.o)
-LIBFILE=src.a
+CFLAGS += -std=c99
+CFLAGS += -Wall
+CFLAGS += -Werror
+CFLAGS += -Wshadow
+CFLAGS += -Wextra
+CFLAGS += -O2 -D_FORTIFY_SOURCE=2
+CFLAGS += -fstack-protector-all
+CFLAGS += -D_POSIX_C_SOURCE=201112L -D_XOPEN_SOURCE
 
-all: $(SRC) $(LIBFILE)
+LDFLAGS= -rdynamic
 
-$(LIBFILE): $(OBJ)
-	ar r $@ $(OBJ)
+all: clean pkt
 
-*.o:
-	gcc -o $@ -c $< $(CFLAGS)
+debug: CFLAGS += -g -DDEBUG -Wno-unused-parameter -fno-omit-frame-pointer
+debug: clean pkt
 
-clean: scr.a packet.o sender.o receiver.o
-	rm scr.a packet.o sender.o receiver.o
+pkt: packet.o sender.o receiver.o
+
+.PHONY: clean
+
+clean:
+	@rm -f pkt packet.o sender.o receiver.o
