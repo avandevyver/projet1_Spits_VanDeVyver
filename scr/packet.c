@@ -13,9 +13,7 @@ struct __attribute__((__packed__)) pkt {
 	ptypes_t type : 2;
 	uint8_t seqnum;
 	uint16_t length;
-
 	uint32_t timestamp;
-
 	uint32_t crc1;
 	char * playload;
 	uint32_t crc2;
@@ -28,7 +26,7 @@ pkt_status_code pkt_validity(const pkt_t *pkt) {
 	if ((pkt->type < 1) || (pkt->type > 3)) {
 		return E_TYPE;
 	}
-	if ((pkt->tr != 1) || (pkt->tr != 0)) {
+	if ((pkt->tr != 1) && (pkt->tr != 0)) {
 		return E_TR;
 	}
 	if ((pkt->type == PTYPE_DATA) && (pkt->tr != 0)) {
@@ -49,6 +47,15 @@ pkt_status_code pkt_validity(const pkt_t *pkt) {
 pkt_t* pkt_new()
 {
 	struct pkt_t* pkt = malloc(sizeof(struct pkt_t*));
+	pkt->type = 0;
+	pkt->tr = 0;
+	pkt->window = 0;
+	pkt->seqnum = 0;
+	pkt->length = 0;
+	pkt->timestamp = 0;
+	pkt->crc1 = 0;
+	pkt->playload = NULL;
+	pkt->crc2 = 0;
 	return pkt;
 }
 
@@ -74,9 +81,12 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 			return E_NOMEM;
 		}
 	}
+	else if (pkt->playload != NULL) {
+		free(pkt->playload);
+	}
 	memcpy(pkt, data, 12 * sizeof(char));/*copy header*/
 	pkt->length = ntohs(pkt->length);
-	if ((len != 12 * sizeof(char)) || (len != (16 + pkt->length) * sizeof(char))) {
+	if ((len != 12 * sizeof(char)) || (len < (16 + pkt->length) * sizeof(char))) {
 		return E_UNCONSISTENT;
 	}
 	pkt->playload = malloc(pkt->length * sizeof(char));
@@ -113,9 +123,9 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 
 	memcpy(buf, pkt, 2);/*copy type-tr-window*/
 	char * tmp = &(buf[2]);
-	memcpy(buf, &(htons(pkt->length)), 2 * sizeof(char));
+	memcpy(tmp, &(htons(pkt->length)), 2 * sizeof(char));
 	tmp = &(tmp[2]);
-	memcpy(buf, &(pkt->timestamp), 4 * sizeof(char));
+	memcpy(tmp, &(pkt->timestamp), 4 * sizeof(char));
 	tmp = &(tmp[4]);
 	/*calc crc1*/
 	memcpy(tmp, &(htonl(pkt->crc1)), 4 * sizeof(char));
@@ -274,7 +284,9 @@ pkt_status_code pkt_set_payload(pkt_t *pkt,
 	if (load == NULL) {
 		return E_NOMEM;}
 	load = strcpy(load, buf);
-	pkt_del(pkt);
+	if (pkt->playload != NULL) {
+		free(pkt->playload);
+	}
 	pkt->playload = load;
 	return 0;
 }
