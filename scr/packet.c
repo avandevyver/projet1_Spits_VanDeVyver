@@ -31,7 +31,10 @@ pkt_status_code pkt_validity(const pkt_t *pkt) {
 		return E_TR;     /** Tr     match range **/
 	}
 	if ((pkt->type == PTYPE_DATA) && (pkt->tr != 0)) {
-		return E_TR;     /** Tr     match       **/
+		return E_TR;     /** Tr     match type  **/
+	}
+	if ((pkt->tr == 0) && (pkt->length != 0)) {
+		return E_TR;     /** Tr    match length **/
 	}
 	if ((pkt->window < 0) || (pkt->window > 31)) {
 		return E_WINDOW; /** Window match range **/
