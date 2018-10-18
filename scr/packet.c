@@ -1,52 +1,27 @@
-#include "packet_interface.h" /*retire la interface*/
+#include "packet.h"
+
 #include <stdlib.h>
 #include <string.h>
+#include <arpa/inet.h>
 
 /* Extra #includes */
 /* Your code will be inserted here */
 
 struct __attribute__((__packed__)) pkt {
-	ptypes_t type;
-	uint8_t tr;
-	uint8_t window;
+	uint8_t window : 5;
+	uint8_t tr : 1;
+	ptypes_t type : 2;
 	uint8_t seqnum;
 	uint16_t length;
+
 	uint32_t timestamp;
+
 	uint32_t crc1;
 	char * playload;
 	uint32_t crc2;
 };
 
-/* Extra code here */
-
-pkt_t* pkt_new()
-{
-	struct pkt_t* pkt = malloc(sizeof(struct pkt_t*));
-	return pkt;
-}
-
-void pkt_del(pkt_t *pkt)
-{
-	if (pkt != NULL) {
-		if (pkt->playload != NULL) {
-			free(pkt->playload);
-		}
-	}
-	exit(EXIT_SUCCESS);
-}
-
-pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
-{
-	pkt_del(pkt);
-	/* inserted decoding */
-	return 0;
-}
-
-pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
-{
-	if (buf != NULL) {
-		free(buf);
-	}
+pkt_status_code pkt_validity(const pkt_t *pkt) {
 	if (pkt == NULL) {
 		return E_UNCONSISTENT;
 	}
@@ -68,70 +43,114 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 	if ((pkt->length < 0) || (pkt->length > 512)) {
 		return E_LENGTH;
 	}
+	return 0;
+}
 
-	int pkt_size = 4 + 4 + 4 + pkt->length + (pkt->length == 0) * 4;
+pkt_t* pkt_new()
+{
+	struct pkt_t* pkt = malloc(sizeof(struct pkt_t*));
+	return pkt;
+}
+
+void pkt_del(pkt_t *pkt)
+{
+	if (pkt != NULL) {
+		if (pkt->playload != NULL) {
+			free(pkt->playload);
+		}
+	}
+	exit(EXIT_SUCCESS);
+}
+
+pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
+{
+	pkt_del(pkt);
+	pkt = pkt_new();
+	if (pkt == NULL) {
+		return E_NOMEM;
+	}
+	memcpy(pkt, data, len);
+	pkt->length = ntohs(pkt->length);
+	pkt->crc1 = ntohl(pkt->crc1);
+	pkt->crc2 = ntohl(pkt->crc2);
+
+	/*calc crc1 crc2 + check*/
+
+	return pkt_validity(pkt);
+}
+
+pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
+{
+	if (buf != NULL) {
+		free(buf);
+	}
+	int dia = pkt_validity(pkt);
+	if (dia != 0) {
+		return dia;
+	}
+
+	uint16_t l = pkt->length;
+	int pkt_size = 4 + 4 + 4 + l + (l == 0) * 4;
 	buf = malloc(sizeof(char) * pkt_size);
-
 	if (buf == NULL) {
 		return E_NOMEM;
 	}
-	/* insert encoding */
+
+	memcpy(buf, pkt, 2);/*copy type-tr-window*/
+	char * tmp = &(buf[2]);
+	memcpy(buf, &(htons(pkt->length)), 2);
+	tmp = &(tmp[2]);
+	memcpy(buf, &(pkt->timestamp), 4);
+	tmp = &(tmp[4]);
+	/*calc crc1*/
+	memcpy(tmp, &(htonl(pkt->crc1)), 4);
+	tmp = &(tmp[4]);
+	if (l > 0) {
+		/*calc crc2*/
+		memcpy(tmp, pkt->playload, l);
+		tmp = &(tmp[l]);
+		memcpy(tmp, &(htons(pkt->crc2)), 4);
+	}
 	return 0;
 }
 
 ptypes_t pkt_get_type(const pkt_t* pkt)
 {
-	if (pkt == NULL) {
-		/**/}
 	return plt->type;
 }
 
 uint8_t  pkt_get_tr(const pkt_t* pkt)
 {
-	if (pkt == NULL) {
-		/**/}
 	return plt->tr;
 }
 
 uint8_t  pkt_get_window(const pkt_t* pkt)
 {
-	if (pkt == NULL) {
-		/**/}
 	return plt->window;
 }
 
 uint8_t  pkt_get_seqnum(const pkt_t* pkt)
 {
-	if (pkt == NULL) {
-		/**/}
 	return pl->seqnum;
 }
 
 uint16_t pkt_get_length(const pkt_t* pkt)
 {
-	if (pkt == NULL) {
-		/**/}
 	return plt->length;
 }
 
 uint32_t pkt_get_timestamp(const pkt_t* pkt)
 {
-	if (pkt == NULL) {
-		/**/}
 	return plt->timestamp;
 }
 
 uint32_t pkt_get_crc1(const pkt_t* pkt)
 {
-	if (pkt == NULL) {
-		/**/}
 	return plt->crc1;
 }
 
 uint32_t pkt_get_crc2(const pkt_t* pkt)
 {
-	if (pkt == NULL) {
-		/**/}
 	if (pkt->length == 0) {
 		return 0;}
 	return plt->crc2;
