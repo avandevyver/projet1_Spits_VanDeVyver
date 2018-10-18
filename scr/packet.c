@@ -69,9 +69,24 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 	if (pkt == NULL) {
 		return E_NOMEM;
 	}
-	memcpy(pkt, data, len);
+	if (len < 8) {
+		return E_NOHEADER;
+	}
+	memcpy(pkt, data, 12 * sizeof(char));/*copy header*/
 	pkt->length = ntohs(pkt->length);
+	if ((len != 12) || (len != 16 + pkt->length)) {
+		return E_UNCONSISTENT;
+	}
+	pkt->playload = malloc(pkt->length * sizeof(char));
+	if (pkt->playload == NULL) {
+		return E_NOMEM;
+	}
 	pkt->crc1 = ntohl(pkt->crc1);
+
+	char * tmp = &(data[12]);
+	memcpy(pkt->playload, tmp, pkt->length * sizeof(char));
+	tmp = &(tmp[pkt->length]);
+	memcpy(&(pkt->crc2), tmp, 4 * sizeof(char));
 	pkt->crc2 = ntohl(pkt->crc2);
 
 	/*calc crc1 crc2 + check*/
@@ -89,27 +104,29 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 		return dia;
 	}
 
-	uint16_t l = pkt->length;
-	int pkt_size = 4 + 4 + 4 + l + (l == 0) * 4;
-	buf = malloc(sizeof(char) * pkt_size);
+	int pkt_size = 12 + pkt->length;
+	if (pkt->length != 0) {
+		pkt_size += 4;
+	}
+	buf = malloc(pkt_size * sizeof(char));
 	if (buf == NULL) {
 		return E_NOMEM;
 	}
 
 	memcpy(buf, pkt, 2);/*copy type-tr-window*/
 	char * tmp = &(buf[2]);
-	memcpy(buf, &(htons(pkt->length)), 2);
+	memcpy(buf, &(htons(pkt->length)), 2 * sizeof(char));
 	tmp = &(tmp[2]);
-	memcpy(buf, &(pkt->timestamp), 4);
+	memcpy(buf, &(pkt->timestamp), 4 * sizeof(char));
 	tmp = &(tmp[4]);
 	/*calc crc1*/
-	memcpy(tmp, &(htonl(pkt->crc1)), 4);
+	memcpy(tmp, &(htonl(pkt->crc1)), 4 * sizeof(char));
 	tmp = &(tmp[4]);
 	if (l > 0) {
 		/*calc crc2*/
-		memcpy(tmp, pkt->playload, l);
-		tmp = &(tmp[l]);
-		memcpy(tmp, &(htons(pkt->crc2)), 4);
+		memcpy(tmp, pkt->playload, pkt->length * sizeof(char));
+		tmp = &(tmp[pkt->length]);
+		memcpy(tmp, &(htons(pkt->crc2)), 4 * sizeof(char));
 	}
 	return 0;
 }
